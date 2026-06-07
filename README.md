@@ -1,10 +1,4 @@
 # 🔐 WAYNE VAULT
-> **DEVELOPER:** [WAYNE CORE](https://github.com/samwelwayne266-coder)  
-> **PROTOCOL:** LOCAL_ENCRYPTED_STORAGE
-
----
-
-### 🛰️ MISSION OVERVIEW
 **Wayne Vault** is a terminal-inspired local storage system. It allows for secure file transfers and system monitoring across your local network.
 
 ---
@@ -53,12 +47,9 @@ The system is protected by a Gatekeeper. You must enter the identity-verified co
    SECRET_CODE: **```WAYNE```**
 
 **💎 FEATURES**
-🛠️ Terminal UI: Matrix-style scanline interface.
 
 📊 Live Telemetry: Real-time monitoring of CPU/RAM.
 
 💀 Data Shredder: Overwrites bytes before deletion.
 
 🚀 Universal Access: Fully responsive for mobile and desktop browsers.
-
-**Copyright © 2025 WAYNE CORE**
