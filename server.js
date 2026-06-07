@@ -49,26 +49,34 @@ app.post('/upload', upload.single('file'), (req, res) => {
     io.emit('vault-update');
 });
 
+// --- SHRED ALL FILES ---
+app.post('/shred-all', (req, res) => {
+    const files = fs.readdirSync(UPLOAD_DIR);
+    files.forEach(f => {
+        const fp = path.join(UPLOAD_DIR, f);
+        const size = fs.statSync(fp).size;
+        fs.writeFileSync(fp, Buffer.alloc(size, 0));
+        fs.unlinkSync(fp);
+    });
+    io.emit('vault-update');
+    res.status(200).send("All files shredded.");
+});
+
 app.get('/download/:filename', (req, res) => {
     res.download(path.join(UPLOAD_DIR, req.params.filename));
 });
 
-// --- SUPREME FEATURE: COMMAND PROCESSOR ---
+// --- INLINE FILE VIEWING (images/videos) ---
+app.get('/view/:filename', (req, res) => {
+    const filePath = path.join(UPLOAD_DIR, req.params.filename);
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).end();
+    }
+});
+
 io.on('connection', (socket) => {
-    socket.on('execute-command', (cmd) => {
-        let response = "";
-        const parts = cmd.toLowerCase().split(' ');
-        
-        switch(parts[0]) {
-            case 'help': response = "AVAILABLE: ls, shred [file], clear, status, lock"; break;
-            case 'ls': response = fs.readdirSync(UPLOAD_DIR).join(' | ') || "VAULT_EMPTY"; break;
-            case 'status': response = `OS: ${os.platform()} | ARCH: ${os.arch()} | CORE: WAYNE`; break;
-            case 'lock': response = "PROTOCOL_RE-ENGAGED"; break;
-            default: response = "COMMAND_NOT_RECOGNIZED";
-        }
-        socket.emit('terminal-response', `> ${response}`);
-    });
-    
     const sendFiles = () => socket.emit('vault-contents', fs.readdirSync(UPLOAD_DIR));
     socket.on('get-files', sendFiles);
     socket.on('vault-update', sendFiles);
