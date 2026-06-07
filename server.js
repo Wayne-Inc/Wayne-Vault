@@ -22,6 +22,24 @@ const upload = multer({ storage });
 
 app.use(express.static('public'));
 
+// --- NETWORK INFO ---
+function getNetworkInfo() {
+    const ifaces = os.networkInterfaces();
+    const addrs = [];
+    Object.keys(ifaces).forEach(name => {
+        ifaces[name].forEach(iface => {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                addrs.push({ name, address: iface.address, mac: iface.mac });
+            }
+        });
+    });
+    return { hostname: os.hostname(), port: PORT, interfaces: addrs };
+}
+
+app.get('/api/info', (req, res) => {
+    res.json(getNetworkInfo());
+});
+
 // --- SUPREME FEATURE: SYSTEM TELEMETRY ---
 setInterval(() => {
     io.emit('sys-telemetry', {
@@ -76,11 +94,41 @@ app.get('/view/:filename', (req, res) => {
     }
 });
 
+const ADJS = ['Swift','Neon','Cyber','Ghost','Shadow','Cobalt','Frost','Ember','Void','Pixel','Quantum','Phantom','Crimson','Storm','Blaze','Night','Silk','Echo','Iris','Lunar','Nova','Hex','Dot','Flux'];
+const NOUNS = ['Falcon','Panda','Wolf','Raven','Fox','Tiger','Phoenix','Viper','Lynx','Hawk','Dragon','Panther','Saber','Knight','Shade','Oracle','Warden','Sentinel','Haven','Vertex','Zenith','Eagle','Coyote'];
+
+const devices = new Map();
+
+function randomNickname() {
+    const a = ADJS[Math.floor(Math.random() * ADJS.length)];
+    const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    return a + ' ' + n;
+}
+
+function broadcastDevices() {
+    const list = [];
+    devices.forEach(d => list.push({ id: d.id, nickname: d.nickname, type: d.type, ip: d.ip }));
+    io.emit('device-list', list);
+}
+
 io.on('connection', (socket) => {
     const sendFiles = () => socket.emit('vault-contents', fs.readdirSync(UPLOAD_DIR));
     socket.on('get-files', sendFiles);
     socket.on('vault-update', sendFiles);
     sendFiles();
+
+    socket.on('device-info', (info) => {
+        const ip = socket.handshake.address.replace(/^::ffff:/, '');
+        const nickname = randomNickname();
+        devices.set(socket.id, { id: socket.id, nickname, type: info.type || 'desktop', ip });
+        socket.emit('your-nickname', nickname);
+        broadcastDevices();
+    });
+
+    socket.on('disconnect', () => {
+        devices.delete(socket.id);
+        broadcastDevices();
+    });
 });
 
 server.listen(PORT, () => console.log("WAYNE_CORE // SYSTEM_READY"));
